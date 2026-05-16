@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     const registrationId = session.metadata?.registration_id;
 
     if (registrationId) {
-      const supabase = await createServiceClient();
+      const supabase = createServiceClient();
       await supabase
         .from("event_registrations")
         .update({

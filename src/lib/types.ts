@@ -75,6 +75,22 @@ export type Event = {
   } | null;
 };
 
+export type ApplicationStatus = "pending" | "invited" | "rejected";
+
+export type MembershipApplication = {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  message: string;
+  dog_info: string | null;
+  status: ApplicationStatus;
+  invite_id: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+};
+
 export type Invite = {
   id: string;
   token: string;

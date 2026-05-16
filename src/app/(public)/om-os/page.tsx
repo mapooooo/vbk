@@ -13,12 +13,12 @@ export default function OmOsPage() {
         Vi lægger vægt på at skabe en positiv træningsoplevelse for både hunde
         og deres ejere i vores fællesskab.
       </p>
-      <div className="relative mt-8 aspect-video overflow-hidden rounded-xl">
+      <div className="relative mt-8 aspect-[4/5] max-h-[520px] w-full overflow-hidden rounded-xl sm:aspect-[3/4]">
         <Image
-          src="/images/lydighed1.png"
-          alt="Træning på VBK"
+          src="/images/gili.png"
+          alt="Træning på VBK bane"
           fill
-          className="object-cover"
+          className="object-cover object-[50%_32%]"
         />
       </div>
     </div>

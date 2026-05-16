@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
-import { createServiceClient, createSystemInvite } from "@/lib/supabase/server";
+import { createSystemInvite } from "@/lib/supabase/server";
 import { randomBytes } from "crypto";
 
-/** Opret første invitation når ingen medlemmer findes endnu */
+/** Kun lokal udvikling — opretter invite uden "setup already done" begrænsning */
 export async function POST(request: Request) {
+  if (process.env.NODE_ENV !== "development") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const secret = request.headers.get("x-setup-secret");
   if (!secret || secret !== process.env.ADMIN_SETUP_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,25 +20,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = createServiceClient();
-
-  const { count } = await supabase
-    .from("profiles")
-    .select("*", { count: "exact", head: true })
-    .not("approved_at", "is", null);
-
-  if ((count ?? 0) > 0) {
-    return NextResponse.json(
-      { error: "Setup already completed" },
-      { status: 400 }
-    );
-  }
-
   const token = randomBytes(24).toString("hex");
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30);
-
   const expiresIso = expiresAt.toISOString();
+
   let data;
   try {
     const result = await createSystemInvite(token, expiresIso);
@@ -52,6 +42,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     invite_url: `${appUrl}/invite/${token}`,
     expires_at: data.expires_at,
-    note: "Første bruger der bruger dette link bliver automatisk admin.",
+    note: "Første godkendte bruger uden forældre bliver admin (se migration).",
   });
 }

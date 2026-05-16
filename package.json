@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:invite": "node scripts/dev-invite.mjs",
+    "dev:magic-link": "node scripts/dev-magic-link.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

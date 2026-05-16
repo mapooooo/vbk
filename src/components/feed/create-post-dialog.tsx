@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -80,11 +81,14 @@ export function CreatePostDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>
-        <Button className="h-12 gap-2 bg-[#5B9BD5] hover:bg-[#4a8ac4]">
-          <Plus className="h-5 w-5" />
-          Nyt opslag
-        </Button>
+      <DialogTrigger
+        className={cn(
+          buttonVariants(),
+          "h-12 gap-2 bg-[#5B9BD5] text-white hover:bg-[#4a8ac4]"
+        )}
+      >
+        <Plus className="h-5 w-5" />
+        Nyt opslag
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>

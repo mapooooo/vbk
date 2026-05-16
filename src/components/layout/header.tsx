@@ -5,6 +5,7 @@ const publicLinks = [
   { href: "/", label: "Hjem" },
   { href: "/kursushold", label: "Kursushold" },
   { href: "/om-os", label: "Om os" },
+  { href: "/bliv-medlem", label: "Bliv medlem" },
 ];
 
 export function PublicHeader() {

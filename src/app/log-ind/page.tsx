@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicHeader } from "@/components/layout/header";
+import { DevLoginHint } from "@/components/dev/dev-login-hint";
 
 export default function LogIndPage() {
   return (
@@ -20,7 +21,11 @@ export default function LogIndPage() {
               besked fra klubben — der kan du logge ind med magic link.
             </p>
             <p className="text-sm text-muted-foreground">
-              Har du ikke en invitation? Kontakt bestyrelsen i klubben.
+              Vil du være med?{" "}
+              <Link href="/bliv-medlem" className="text-[#5B9BD5] hover:underline">
+                Send en ansøgning
+              </Link>{" "}
+              — bestyrelsen vender tilbage med invitation.
             </p>
             <Link
               href="/"
@@ -28,6 +33,7 @@ export default function LogIndPage() {
             >
               ← Tilbage til forsiden
             </Link>
+            <DevLoginHint />
           </CardContent>
         </Card>
       </main>

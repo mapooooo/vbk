@@ -1,20 +1,19 @@
 import Image from "next/image";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { coursePackages } from "@/lib/content/kursushold";
+import { CoursePackageCard } from "@/components/public/course-package-card";
 
-const holds = [
+const holdGallery = [
   {
     title: "Hvalpetræning",
-    desc: "Gode vaner fra start — socialisering og grundlæggende øvelser for de mindste.",
     image: "/images/hvalpetræning.png",
   },
   {
     title: "Lydighed",
-    desc: "Kursushold for voksne hunde — vi hjælper med en god og lydig hund I kan nyde mange timer med.",
     image: "/images/lydighed1.png",
   },
   {
     title: "Sporarbejde",
-    desc: "Træning i spor og næsework for hunde med drive og nysgerrighed.",
     image: "/images/spor1.png",
   },
 ];
@@ -25,21 +24,50 @@ export default function KursusholdPage() {
       <h1 className="font-serif text-3xl">Kursushold</h1>
       <p className="mt-2 max-w-2xl text-muted-foreground">
         Vi tilbyder kursushold til både hvalpe og voksne hunde. Som medlem kan du
-        tilmelde dig hold direkte i klubplatformen.
+        tilmelde dig hold direkte i klubplatformen under{" "}
+        <Link href="/tilmelding" className="text-[#5B9BD5] hover:underline">
+          Tilmelding
+        </Link>
+        .
       </p>
-      <div className="mt-10 grid gap-6 md:grid-cols-3">
-        {holds.map((hold) => (
-          <Card key={hold.title} className="overflow-hidden border-none shadow-md">
-            <div className="relative aspect-[4/3]">
-              <Image src={hold.image} alt={hold.title} fill className="object-cover" />
+
+      <section className="mt-10">
+        <h2 className="font-serif text-2xl">Holdstarter og priser</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Nye medlemmer kan ansøge via{" "}
+          <Link href="/bliv-medlem" className="text-[#5B9BD5] hover:underline">
+            Bliv medlem
+          </Link>
+          . Allerede medlem? Log ind og tilmeld dig.
+        </p>
+        <div className="mt-6 grid gap-6 md:grid-cols-3">
+          {coursePackages.map((pkg) => (
+            <CoursePackageCard key={pkg.id} pkg={pkg} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-14">
+        <h2 className="font-serif text-2xl">Fra træningen</h2>
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          {holdGallery.map((item) => (
+            <div
+              key={item.title}
+              className="relative aspect-[4/3] overflow-hidden rounded-xl"
+            >
+              <Image
+                src={item.image}
+                alt={item.title}
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                <p className="text-sm font-medium text-white">{item.title}</p>
+              </div>
             </div>
-            <CardHeader>
-              <CardTitle className="font-serif text-xl">{hold.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="-mt-2 text-muted-foreground">{hold.desc}</CardContent>
-          </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
