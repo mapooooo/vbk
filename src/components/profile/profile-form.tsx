@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Profile } from "@/lib/types";
+import { ChangePasswordSection } from "@/components/profile/change-password-section";
 import { toast } from "sonner";
 
 const roleLabels: Record<string, string> = {
@@ -87,6 +88,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
             {loading ? "Gemmer..." : "Gem ændringer"}
           </Button>
         </form>
+        {profile.password_set_at && <ChangePasswordSection />}
         <Button
           variant="outline"
           className="h-12 w-full"

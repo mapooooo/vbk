@@ -1,7 +1,15 @@
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Suspense } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { PublicHeader } from "@/components/layout/header";
-import { DevLoginHint } from "@/components/dev/dev-login-hint";
+import { MemberLoginForm } from "@/components/auth/member-login-form";
+import { AuthErrorBanner } from "@/components/auth/auth-error-banner";
 
 export default function LogIndPage() {
   return (
@@ -12,20 +20,22 @@ export default function LogIndPage() {
           <CardHeader>
             <CardTitle className="font-serif text-2xl">Medlemslogin</CardTitle>
             <CardDescription>
-              Du skal have en invitation fra klubben for at oprette adgang.
+              Log ind med den e-mail, du brugte da du blev medlem.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              Har du modtaget et invitationslink? Åbn linket i din e-mail eller
-              besked fra klubben — der kan du logge ind med magic link.
-            </p>
+            <Suspense fallback={null}>
+              <AuthErrorBanner />
+            </Suspense>
+            <Suspense fallback={<p className="text-muted-foreground">Indlæser...</p>}>
+              <MemberLoginForm />
+            </Suspense>
             <p className="text-sm text-muted-foreground">
-              Vil du være med?{" "}
+              Har du ikke adgang endnu?{" "}
               <Link href="/bliv-medlem" className="text-[#5B9BD5] hover:underline">
                 Send en ansøgning
               </Link>{" "}
-              — bestyrelsen vender tilbage med invitation.
+              — bestyrelsen sender et invitationslink, når du er godkendt.
             </p>
             <Link
               href="/"
@@ -33,7 +43,6 @@ export default function LogIndPage() {
             >
               ← Tilbage til forsiden
             </Link>
-            <DevLoginHint />
           </CardContent>
         </Card>
       </main>

@@ -6,6 +6,7 @@ export type Profile = {
   avatar_url: string | null;
   role: UserRole;
   approved_at: string | null;
+  password_set_at: string | null;
   created_at: string;
 };
 

@@ -18,7 +18,7 @@ Medlemsplatform for **Vandel Brugshundeklub** — klub-feed, 1:1-chat, hold-tilm
 3. Under **Authentication → URL Configuration**:
    - Site URL: `http://localhost:3000` (eller dit domæne)
    - Redirect URLs: `http://localhost:3000/auth/callback`
-4. Under **Authentication → Email** — aktiver magic link / OTP
+4. Under **Authentication → Email** — aktiver magic link / OTP (standard Supabase-mail med "Sign in"-link er fint til `/log-ind`)
 5. (Valgfrit) Konfigurer **Resend** som SMTP under Project Settings → Auth
 
 ### 2. Miljøvariabler
@@ -55,6 +55,22 @@ npm run dev
 
 Åbn [http://localhost:3000](http://localhost:3000).
 
+### Medlemslogin (`/log-ind`)
+
+Godkendte medlemmer logger ind med **login-mail (magic link)** eller **e-mail + adgangskode**.
+
+- Første gang: invitationslink → `/invite/[token]` → login-mail → **opret adgangskode** på `/auth/set-password`
+- Derefter: `/log-ind` med fanen **Login-mail** eller **Adgangskode**
+
+Kør migration [`004_password_set_at.sql`](supabase/migrations/004_password_set_at.sql) i Supabase SQL Editor.
+
+**Nød-hjælp i udvikling** (ikke i UI):
+
+```bash
+npm run dev:invite          # opret invite-link (kræver kørende dev-server)
+npm run dev:magic-link -- din@email.dk   # print magic link i terminal
+```
+
 ## Deploy til Vercel
 
 1. Push til GitHub og importer i Vercel
@@ -67,7 +83,7 @@ npm run dev
 | Område | Beskrivelse |
 |--------|-------------|
 | Offentlig forside | Marketing, kursushold, om os |
-| Invite + magic link | Kun med invitation |
+| Invite + login | Invitation til nye; `/log-ind` med e-mail + magic link til eksisterende |
 | Klub-feed | Opslag, likes, kommentarer, søgning |
 | Chat | 1:1 med realtime (Supabase) |
 | Tilmelding | Hold/arrangementer med kapacitet og venteliste |

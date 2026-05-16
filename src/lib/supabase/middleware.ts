@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const AUTH_SETUP_PATH = "/auth/set-password";
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -38,9 +40,6 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/admin") ||
     path.startsWith("/opslag");
 
-  const isAuthRoute =
-    path.startsWith("/auth") || path.startsWith("/invite");
-
   if (isMemberRoute && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/log-ind";
@@ -48,42 +47,47 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && isMemberRoute) {
+  if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("approved_at")
+      .select("approved_at, password_set_at, role")
       .eq("id", user.id)
       .single();
 
-    if (!profile?.approved_at && !path.startsWith("/auth/complete")) {
+    const needsPassword =
+      profile?.approved_at && !profile.password_set_at;
+
+    if (isMemberRoute && !profile?.approved_at && !path.startsWith("/auth/complete")) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/complete";
       return NextResponse.redirect(url);
     }
-  }
 
-  if (user && (path === "/log-ind" || path === "/auth/callback")) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("approved_at")
-      .eq("id", user.id)
-      .single();
+    if (
+      needsPassword &&
+      isMemberRoute &&
+      !path.startsWith(AUTH_SETUP_PATH)
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = AUTH_SETUP_PATH;
+      return NextResponse.redirect(url);
+    }
 
-    if (profile?.approved_at) {
+    if (path === AUTH_SETUP_PATH && profile?.password_set_at) {
       const url = request.nextUrl.clone();
       url.pathname = "/hjem";
       return NextResponse.redirect(url);
     }
-  }
 
-  if (path.startsWith("/admin") && user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    if (user && (path === "/log-ind" || path === "/auth/callback")) {
+      if (profile?.approved_at) {
+        const url = request.nextUrl.clone();
+        url.pathname = needsPassword ? AUTH_SETUP_PATH : "/hjem";
+        return NextResponse.redirect(url);
+      }
+    }
 
-    if (profile?.role !== "admin") {
+    if (path.startsWith("/admin") && profile?.role !== "admin") {
       const url = request.nextUrl.clone();
       url.pathname = "/hjem";
       return NextResponse.redirect(url);

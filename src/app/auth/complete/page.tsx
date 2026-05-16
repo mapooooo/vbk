@@ -13,11 +13,13 @@ export default async function AuthCompletePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("approved_at")
+    .select("approved_at, password_set_at")
     .eq("id", user.id)
     .single();
 
-  if (profile?.approved_at) redirect("/hjem");
+  if (profile?.approved_at) {
+    redirect(profile.password_set_at ? "/hjem" : "/auth/set-password");
+  }
 
   const cookieStore = await cookies();
   const inviteToken = cookieStore.get("vbk_invite_token")?.value;
@@ -32,7 +34,7 @@ export default async function AuthCompletePage() {
     });
 
     if (!error) {
-      redirect("/hjem");
+      redirect("/auth/set-password");
     }
   }
 

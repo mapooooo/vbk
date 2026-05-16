@@ -12,6 +12,12 @@ export async function GET(request: Request) {
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`);
     }
+
+    const isExpired =
+      error.message.toLowerCase().includes("expired") ||
+      error.message.toLowerCase().includes("invalid");
+    const errorParam = isExpired ? "otp_expired" : "auth";
+    return NextResponse.redirect(`${origin}/log-ind?error=${errorParam}`);
   }
 
   return NextResponse.redirect(`${origin}/log-ind?error=auth`);
