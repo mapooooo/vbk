@@ -1,0 +1,85 @@
+# Projekt: VBK Platform — MVP (tekstopslag + klub-feed)
+
+## Kontekst
+Byg en webapp til **VBK (Vandel Brugshunde Klub)** — en dansk hundetræningsforening.
+Formålet er et **internt kontaktpunkt** for medlemmer der **ikke bruger Facebook**, men som stadig skal kunne følge med i klubben, skrive til hinanden og reagere på opslag.
+
+**Mental model:** Tænk **Facebook-begivenhedsside** (ikke Instagram/TikTok):
+- Én tydelig "begivenhed"/opslag med titel, beskrivelse, tid og sted
+- Opdateringer og kommentarer samlet ét sted
+- Lav friktion — få klik, store touch-targets, dansk UI
+- Mobil først (mange bruger telefonen efter træning)
+
+**Reference-UI (inspiration, ikke 1:1 kopi):**
+Et mørkt dashboard med:
+- Top: logo + brugeravatar
+- Valgfri horisontal række med medlemmer/aktivitet (kan udelades i MVP)
+- Hovedområde i to kolonner på desktop:
+  - Venstre: "Seneste samtaler" (chatliste)
+  - Højre: Klub-feed med søgning ("Søg i opslag...")
+- Opslagskort: forfatter, tid, titel/tekst, like + kommentar-tællere
+
+**Vigtigt:** Dette er en **forenklet starter**. Tag *idéer* fra et eksisterende SoMe-dashboard (chat + opslag + engagement), men **byg ikke** træningsskuffe, whiteboard, mantrailing, tracking, shop, hundeprofiler, stories-video eller scenariedeling i v1.
+
+---
+
+## Målgruppe
+- Klubmedlemmer (alle aldre, varierende digital erfaring)
+- Trænere/instruktører der poster træning/arrangementer
+- Bestyrelse/admin der kan pinne eller moderere
+
+**Primært problem:** "Jeg har ikke Facebook — hvor finder jeg info og kan jeg skrive til folk i klubben?"
+
+---
+
+## MVP scope (SKAL med)
+
+### 1. Auth & medlemsprofiler (simpelt)
+- Email + adgangskode (eller magic link) via Supabase Auth
+- Profil: `full_name`, `avatar_url` (valgfri), `role` (`member` | `trainer` | `admin`)
+- Kun **godkendte/medlemmer** ser feed og kan chatte (invite-only eller admin-godkendelse)
+
+### 2. Opslag = "klub-begivenheder" (tekst-fokus)
+Et opslag er **ikke** en story — det er et **varigt opslag** med event-page-følelse:
+
+**Felter (minimum):**
+- `title` (påkrævet) — fx "Træning i byen", "Generalforsamling"
+- `body` (påkrævet) — fri tekst, flere linjer
+- `starts_at` (valgfri) — dato/tid
+- `location` (valgfri) — fx "VBK bane", "Vandel"
+- `author_id`, `created_at`, `updated_at`
+- `is_pinned` (kun admin) — vigtige opslag øverst
+
+**Visning i feed:**
+- Kort med: avatar, navn, relativ tid ("for 2 timer siden")
+- Titel fremhævet, body under (max ~3 linjer + "Læs mere")
+- Hvis `starts_at`: vis tydeligt som begivenhed (dato + tid)
+- Like-tæller + kommentar-tæller på kortet
+- Klik åbner **opslagsdetalje** (fuld tekst + kommentarer)
+
+**Oprette opslag:**
+- Én simpel dialog/side: titel, beskrivelse, valgfri dato/tid, valgfri lokation
+- **Ingen** billede/video-upload i MVP (forbered schema til `image_url` senere, men skjul i UI)
+
+### 3. Engagement på opslag
+- **Like** (toggle, én per bruger per opslag)
+- **Kommentarer** (tekst, kronologisk, nyeste nederst eller øverst — vælg én og hold den konsekvent)
+- Ingen deling af scenarier, dokumenter eller træningsdata
+
+### 4. Klub-feed (alle medlemmers opslag)
+- Standardvisning: **alle opslag** i klubben, nyeste først (pinned øverst)
+- Søgning i titel + body ("Søg i opslag...")
+- Filter (nice-to-have, ellers fase 2): "Kommende" (`starts_at` i fremtiden)
+
+### 5. Direkte beskeder (chat) — simpel udgave
+- 1:1 samtaler mellem medlemmer (som Messenger, ikke gruppechat i MVP)
+- Liste: "Seneste samtaler" med avatar, navn, sidste besked-preview, tid
+- Chatvindue: tekstbeskeder, realtime via Supabase Realtime
+- Start samtale fra medlemsliste eller fra profil på opslag
+
+**Medlemsliste til chat:**
+- Søgbar liste over alle godkendte medlemmer
+- Ingen "venneanmodning" i MVP — alle klubmedlemmer kan skrive til hinanden (eller kræv `accepted` friendship — vælg den simpleste: **alle medlemmer**)
+
+### 6. Startside efter login
+Layout (desktop):
