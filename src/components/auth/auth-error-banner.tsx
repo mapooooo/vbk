@@ -27,6 +27,9 @@ export function AuthErrorBanner() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
+    if (window.location.hash.includes("access_token")) {
+      return;
+    }
     const fromHash = parseHashError(window.location.hash);
     if (fromHash) {
       setHashError(fromHash);

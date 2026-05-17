@@ -8,13 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import type { MembershipApplication } from "@/lib/types";
 import { formatShortDate } from "@/lib/utils/date";
 import { toast } from "sonner";
-import { Copy, Mail } from "lucide-react";
-
-function generateToken() {
-  const arr = new Uint8Array(24);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
-}
+import { Copy, Mail, Send } from "lucide-react";
 
 const statusLabels: Record<MembershipApplication["status"], string> = {
   pending: "Afventer",
@@ -28,60 +22,87 @@ export function ApplicationsPanel({
   applications: MembershipApplication[];
 }) {
   const [applications, setApplications] = useState(initial);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin;
 
   async function createInviteFromApplication(app: MembershipApplication) {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    setLoadingId(app.id);
 
-    const token = generateToken();
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 14);
+    const res = await fetch(`/api/admin/applications/${app.id}/invite`, {
+      method: "POST",
+    });
+    const data = await res.json().catch(() => ({}));
 
-    const { data: invite, error: inviteError } = await supabase
-      .from("invites")
-      .insert({
-        token,
-        email: app.email,
-        created_by: user!.id,
-        expires_at: expiresAt.toISOString(),
-      })
-      .select()
-      .single();
+    setLoadingId(null);
 
-    if (inviteError) {
-      toast.error(inviteError.message);
+    if (!res.ok) {
+      toast.error(
+        data.message ?? data.error ?? "Kunne ikke oprette invitation"
+      );
       return;
     }
 
-    const { error: updateError } = await supabase
-      .from("membership_applications")
-      .update({
-        status: "invited",
-        invite_id: invite.id,
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: user!.id,
-      })
-      .eq("id", app.id);
-
-    if (updateError) {
-      toast.error(updateError.message);
-      return;
+    if (data.inviteUrl) {
+      await navigator.clipboard.writeText(data.inviteUrl);
     }
 
-    const link = `${appUrl}/invite/${token}`;
-    await navigator.clipboard.writeText(link);
-    toast.success("Invitation oprettet — link kopieret til udklipsholder");
+    if (data.emailSent) {
+      toast.success(
+        `Invitation sendt til ${app.email} — link også kopieret til udklipsholder`
+      );
+    } else {
+      toast.warning(
+        data.emailError
+          ? `Invitation oprettet — mail kunne ikke sendes (${data.emailError}); link kopieret`
+          : "Invitation oprettet — mail kunne ikke sendes; link kopieret"
+      );
+    }
 
     setApplications((prev) =>
       prev.map((a) =>
         a.id === app.id
-          ? { ...a, status: "invited" as const, invite_id: invite.id }
+          ? {
+              ...a,
+              status: "invited" as const,
+              invite_id: data.inviteId ?? a.invite_id,
+              invites: { token: data.token },
+            }
           : a
       )
     );
+  }
+
+  async function resendInviteEmail(app: MembershipApplication) {
+    setLoadingId(`resend-${app.id}`);
+
+    const res = await fetch(
+      `/api/admin/applications/${app.id}/invite/resend`,
+      { method: "POST" }
+    );
+    const data = await res.json().catch(() => ({}));
+
+    setLoadingId(null);
+
+    if (!res.ok) {
+      toast.error(data.message ?? data.error ?? "Kunne ikke sende mail");
+      return;
+    }
+
+    if (data.emailSent) {
+      toast.success(`Invitationsmail sendt igen til ${app.email}`);
+    } else {
+      toast.warning(
+        data.emailError
+          ? `Mail kunne ikke sendes: ${data.emailError}`
+          : "Mail kunne ikke sendes — tjek Resend-opsætning"
+      );
+    }
+  }
+
+  function copyInviteLink(token: string) {
+    const link = `${appUrl}/invite/${token}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Invitationslink kopieret");
   }
 
   async function rejectApplication(app: MembershipApplication) {
@@ -162,15 +183,49 @@ export function ApplicationsPanel({
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                 {app.message}
               </p>
+              {app.status === "invited" && app.invites?.token && (
+                <div className="space-y-2 rounded-lg border border-[#5B9BD5]/30 bg-[#5B9BD5]/5 p-3">
+                  <p className="text-sm text-muted-foreground">
+                    Ansøgeren skal åbne invitationslinket og gennemføre første
+                    login der — derefter virker medlemslogin.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() => copyInviteLink(app.invites!.token)}
+                    >
+                      <Copy className="h-4 w-4" />
+                      Kopiér invitationslink
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      disabled={loadingId === `resend-${app.id}`}
+                      onClick={() => resendInviteEmail(app)}
+                    >
+                      <Send className="h-4 w-4" />
+                      {loadingId === `resend-${app.id}`
+                        ? "Sender..."
+                        : "Send mail igen"}
+                    </Button>
+                  </div>
+                </div>
+              )}
               {app.status === "pending" && (
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     className="bg-[#5B9BD5]"
+                    disabled={loadingId === app.id}
                     onClick={() => createInviteFromApplication(app)}
                   >
-                    <Copy className="mr-1 h-4 w-4" />
-                    Opret invitation
+                    <Mail className="mr-1 h-4 w-4" />
+                    {loadingId === app.id
+                      ? "Godkender..."
+                      : "Godkend og send invitation"}
                   </Button>
                   <Button
                     size="sm"

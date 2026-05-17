@@ -17,11 +17,21 @@ Medlemsplatform for **Vandel Brugshundeklub** — klub-feed, 1:1-chat, hold-tilm
 2. Kør SQL fra [`supabase/migrations/001_initial_schema.sql`](supabase/migrations/001_initial_schema.sql) i SQL Editor
 3. Under **Authentication → URL Configuration**:
    - Site URL: `http://localhost:3000` (eller dit domæne)
-   - Redirect URLs: `http://localhost:3000/auth/callback`
-4. Under **Authentication → Email** — aktiver magic link / OTP (standard Supabase-mail med "Sign in"-link er fint til `/log-ind`)
-5. (Valgfrit) Konfigurer **Resend** som SMTP under Project Settings → Auth
+   - Redirect URLs: `http://localhost:3000/**` (inkl. `/auth/callback` og `/auth/callback?next=...`)
+4. Under **Authentication → Email** — aktiver magic link / OTP (standard Supabase-mail med "Sign in"-link er fint til `/log-ind` og invite-flowet)
 
-### 2. Miljøvariabler
+### 2. Resend (invitationsmail ved godkendelse)
+
+Når admin godkender en ansøgning, sendes et **invitationslink** via Resend (separat fra Supabase login-mail).
+
+1. Opret konto på [resend.com](https://resend.com)
+2. Opret API key under **API Keys**
+3. **Udvikling:** Brug `RESEND_FROM_EMAIL=VBK <onboarding@resend.dev>` — mails kan kun sendes til e-mailadresser på din Resend-konto, medmindre du verificerer et domæne
+4. **Produktion:** Verificér klubdomænet under **Domains**, og opdater fx `RESEND_FROM_EMAIL=VBK <noreply@vandel-brugshundeklub.dk>`
+
+Uden `RESEND_API_KEY` oprettes invitationen stadig, og linket kopieres til udklipsholder.
+
+### 3. Miljøvariabler
 
 Kopiér `.env.example` til `.env.local`:
 
@@ -31,9 +41,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ADMIN_SETUP_SECRET=din-hemmelige-setup-nøgle
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=VBK <onboarding@resend.dev>
 ```
 
-### 3. Første invitation (bootstrap)
+### 4. Første invitation (bootstrap)
 
 ```bash
 npm run dev
@@ -46,7 +58,7 @@ curl -X POST http://localhost:3000/api/setup \
 
 Åbn `invite_url` fra svaret. **Første bruger bliver automatisk admin.**
 
-### 4. Udvikling
+### 5. Udvikling
 
 ```bash
 npm install
@@ -59,7 +71,7 @@ npm run dev
 
 Godkendte medlemmer logger ind med **login-mail (magic link)** eller **e-mail + adgangskode**.
 
-- Første gang: invitationslink → `/invite/[token]` → login-mail → **opret adgangskode** på `/auth/set-password`
+- Første gang: admin godkender ansøgning → **Resend-mail med invitationslink** → `/invite/[token]` → udfyld navn → **Fortsæt oprettelse** (direkte login, ingen ekstra mail) → **opret adgangskode** på `/auth/set-password`
 - Derefter: `/log-ind` med fanen **Login-mail** eller **Adgangskode**
 
 Kør migration [`004_password_set_at.sql`](supabase/migrations/004_password_set_at.sql) i Supabase SQL Editor.
@@ -87,7 +99,7 @@ npm run dev:magic-link -- din@email.dk   # print magic link i terminal
 | Klub-feed | Opslag, likes, kommentarer, søgning |
 | Chat | 1:1 med realtime (Supabase) |
 | Tilmelding | Hold/arrangementer med kapacitet og venteliste |
-| Admin | Opret invitationslinks |
+| Admin | Godkend ansøgninger, send invitationsmail (Resend), opret invitationslinks |
 | Stripe | Webhook klar — aktiver med `STRIPE_*` env |
 
 ## Mappestruktur

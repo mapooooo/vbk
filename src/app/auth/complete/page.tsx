@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { CompleteSignup } from "@/components/auth/complete-signup";
 
 export default async function AuthCompletePage() {
@@ -22,10 +23,46 @@ export default async function AuthCompletePage() {
   }
 
   const cookieStore = await cookies();
-  const inviteToken = cookieStore.get("vbk_invite_token")?.value;
-  const fullName = cookieStore.get("vbk_full_name")?.value
+  let inviteToken = cookieStore.get("vbk_invite_token")?.value;
+  let fullName = cookieStore.get("vbk_full_name")?.value
     ? decodeURIComponent(cookieStore.get("vbk_full_name")!.value)
     : "";
+
+  const email = user.email?.toLowerCase();
+  if (email && (!inviteToken || !fullName)) {
+    const service = createServiceClient();
+
+    if (!inviteToken) {
+      const { data: invite } = await service
+        .from("invites")
+        .select("token")
+        .eq("email", email)
+        .is("used_at", null)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (invite?.token) {
+        inviteToken = invite.token;
+      }
+    }
+
+    if (!fullName) {
+      const { data: application } = await service
+        .from("membership_applications")
+        .select("full_name")
+        .eq("email", email)
+        .eq("status", "invited")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (application?.full_name) {
+        fullName = application.full_name;
+      }
+    }
+  }
 
   if (inviteToken && fullName) {
     const { error } = await supabase.rpc("complete_invite_signup", {
@@ -43,6 +80,7 @@ export default async function AuthCompletePage() {
       <CompleteSignup
         inviteToken={inviteToken}
         defaultName={fullName}
+        userEmail={email}
       />
     </main>
   );

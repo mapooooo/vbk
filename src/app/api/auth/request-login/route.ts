@@ -57,7 +57,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 
+  const { data: pendingInvite } = await service
+    .from("invites")
+    .select("id")
+    .eq("email", email)
+    .is("used_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .limit(1)
+    .maybeSingle();
+
   if (!userId) {
+    if (pendingInvite) {
+      if (isDev) {
+        hints.push("Aktiv invitation findes — brug /invite/...-linket først.");
+      }
+      return NextResponse.json({
+        ok: true,
+        needsInvite: true,
+        ...(isDev && {
+          debug: {
+            email,
+            userFound: false,
+            approved: false,
+            emailSent: false,
+            emailMode: "magic_link" as const,
+            supabaseError: null,
+            hints,
+          } satisfies RequestLoginDebug,
+        }),
+      });
+    }
     if (isDev) {
       hints.push("Ingen Supabase Auth-bruger med denne e-mail.");
       hints.push("Opret konto via /invite/... først.");
@@ -85,20 +114,33 @@ export async function POST(request: Request) {
     .single();
 
   if (!profile?.approved_at) {
+    const completeCallback = `${appUrl}/auth/callback?next=${encodeURIComponent("/auth/complete")}`;
+    const anon = createAnonServerClient();
+    const { error: otpError } = await anon.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: completeCallback,
+      },
+    });
+
     if (isDev) {
       hints.push("Bruger findes, men profiles.approved_at er tom.");
-      hints.push("Færdiggør invite-flow på /auth/complete.");
+      hints.push("Sender login-mail med redirect til /auth/complete.");
+      if (otpError) hints.push(`Fejl: ${otpError.message}`);
     }
+
     return NextResponse.json({
       ok: true,
+      needsComplete: true,
       ...(isDev && {
         debug: {
           email,
           userFound: true,
           approved: false,
-          emailSent: false,
+          emailSent: !otpError,
           emailMode: "magic_link" as const,
-          supabaseError: null,
+          supabaseError: otpError?.message ?? null,
           hints,
         } satisfies RequestLoginDebug,
       }),

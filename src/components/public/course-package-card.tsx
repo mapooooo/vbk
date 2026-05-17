@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CoursePackage } from "@/lib/content/kursushold";
+import { MOBILEPAY_NUMBER, usesManualMobilePay } from "@/lib/payments";
 import { formatHoldStart } from "@/lib/utils/format-hold-date";
 
 export function CoursePackageCard({
@@ -19,6 +20,11 @@ export function CoursePackageCard({
       <p className="mt-2 text-sm font-medium text-[#5B9BD5]">
         {formatHoldStart(pkg.startsAt, pkg.startsNote)}
       </p>
+      {usesManualMobilePay() && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          Betaling: MobilePay {MOBILEPAY_NUMBER}
+        </p>
+      )}
       {showCta && (
         <div className="mt-auto flex flex-col gap-3 pt-6">
           <Link

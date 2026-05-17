@@ -56,6 +56,12 @@ export type Message = {
   created_at: string;
 };
 
+export type EventParticipant = {
+  full_name: string;
+  avatar_url: string | null;
+  status: "registered" | "waitlist";
+};
+
 export type Event = {
   id: string;
   title: string;
@@ -68,8 +74,10 @@ export type Event = {
   stripe_price_id: string | null;
   created_by: string;
   published: boolean;
+  course_package_id: string | null;
   created_at: string;
   registration_count?: number;
+  participants?: EventParticipant[];
   my_registration?: {
     status: "registered" | "cancelled" | "waitlist";
     payment_status: string;
@@ -90,6 +98,7 @@ export type MembershipApplication = {
   reviewed_by: string | null;
   reviewed_at: string | null;
   created_at: string;
+  invites?: { token: string } | null;
 };
 
 export type Invite = {

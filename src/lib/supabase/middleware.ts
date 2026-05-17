@@ -79,12 +79,20 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (user && (path === "/log-ind" || path === "/auth/callback")) {
-      if (profile?.approved_at) {
-        const url = request.nextUrl.clone();
-        url.pathname = needsPassword ? AUTH_SETUP_PATH : "/hjem";
-        return NextResponse.redirect(url);
-      }
+    if (user && profile?.approved_at && path === "/log-ind") {
+      const url = request.nextUrl.clone();
+      url.pathname = needsPassword ? AUTH_SETUP_PATH : "/hjem";
+      return NextResponse.redirect(url);
+    }
+
+    if (
+      user &&
+      !profile?.approved_at &&
+      (path === "/log-ind" || path.startsWith("/invite/"))
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/complete";
+      return NextResponse.redirect(url);
     }
 
     if (path.startsWith("/admin") && profile?.role !== "admin") {

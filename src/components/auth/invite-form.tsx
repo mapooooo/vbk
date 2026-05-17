@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,42 +15,42 @@ export function InviteForm({
 }) {
   const [email, setEmail] = useState(lockedEmail ?? "");
   const [fullName, setFullName] = useState("");
-  const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
-    document.cookie = `vbk_invite_token=${token}; path=/; max-age=3600; SameSite=Lax`;
-    document.cookie = `vbk_full_name=${encodeURIComponent(fullName)}; path=/; max-age=3600; SameSite=Lax`;
-
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+    const res = await fetch("/api/invite/send-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token,
+        email: email.trim().toLowerCase(),
+        fullName: fullName.trim(),
+      }),
     });
 
+    const data = await res.json().catch(() => ({}));
     setLoading(false);
 
-    if (error) {
-      toast.error(error.message);
+    if (!res.ok) {
+      if (data.error === "invalid_invite") {
+        toast.error("Invitationen er ugyldig eller udløbet.");
+      } else if (data.error === "email_mismatch") {
+        toast.error("E-mail matcher ikke invitationen.");
+      } else {
+        toast.error(data.error ?? "Kunne ikke fortsætte. Prøv igen.");
+      }
       return;
     }
 
-    setSent(true);
-    toast.success("Tjek din e-mail for login-linket");
-  }
+    if (data.url) {
+      window.location.href = data.url;
+      return;
+    }
 
-  if (sent) {
-    return (
-      <p className="text-center text-muted-foreground">
-        Vi har sendt et login-link til <strong>{email}</strong>. Klik på linket
-        i e-mailen for at fortsætte.
-      </p>
-    );
+    toast.error("Kunne ikke oprette login. Prøv igen.");
   }
 
   return (
@@ -80,12 +79,16 @@ export function InviteForm({
           className="h-12 text-base"
         />
       </div>
+      <p className="text-sm text-muted-foreground">
+        Du sendes videre med det samme — du behøver ikke vente på en ekstra
+        e-mail.
+      </p>
       <Button
         type="submit"
         disabled={loading}
         className="h-12 w-full bg-[#5B9BD5] text-base hover:bg-[#4a8ac4]"
       >
-        {loading ? "Sender..." : "Send login-link"}
+        {loading ? "Opretter konto..." : "Fortsæt oprettelse"}
       </Button>
     </form>
   );

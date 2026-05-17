@@ -6,9 +6,14 @@ export function UserAvatar({
   size = "md",
 }: {
   profile?: Pick<ProfilePreview, "full_name" | "avatar_url"> | null;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
 }) {
-  const sizeClass = { sm: "h-8 w-8", md: "h-10 w-10", lg: "h-12 w-12" }[size];
+  const sizeClass = {
+    sm: "h-8 w-8",
+    md: "h-10 w-10",
+    lg: "h-12 w-12",
+    xl: "h-24 w-24 text-lg",
+  }[size];
   const initials = profile?.full_name
     ?.split(" ")
     .map((n) => n[0])

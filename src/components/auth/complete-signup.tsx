@@ -12,9 +12,11 @@ import { toast } from "sonner";
 export function CompleteSignup({
   inviteToken,
   defaultName,
+  userEmail,
 }: {
   inviteToken?: string;
   defaultName?: string;
+  userEmail?: string;
 }) {
   const [fullName, setFullName] = useState(defaultName ?? "");
   const [loading, setLoading] = useState(false);
@@ -40,7 +42,7 @@ export function CompleteSignup({
       return;
     }
 
-    router.push("/hjem");
+    router.push("/auth/set-password");
     router.refresh();
   }
 
@@ -51,9 +53,13 @@ export function CompleteSignup({
       </CardHeader>
       <CardContent>
         {!inviteToken ? (
-          <p className="text-muted-foreground">
-            Åbn invitationslinket igen for at fuldføre oprettelsen.
-          </p>
+          <div className="space-y-2 text-muted-foreground">
+            <p>
+              Vi kunne ikke finde en aktiv invitation
+              {userEmail ? ` for ${userEmail}` : ""}. Åbn invitationslinket fra
+              klubben igen, eller kontakt bestyrelsen.
+            </p>
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">

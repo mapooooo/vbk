@@ -7,11 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatEventDate } from "@/lib/utils/date";
-import { isStripeEnabled } from "@/lib/stripe";
+import { MobilePayNotice } from "@/components/payments/mobilepay-notice";
+import {
+  MOBILEPAY_NUMBER,
+  mobilePayPaymentLabel,
+  usesManualMobilePay,
+} from "@/lib/payments";
 import type { Event } from "@/lib/types";
-import { Calendar, MapPin, Users } from "lucide-react";
+import { Calendar, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { CreateEventDialog } from "./create-event-dialog";
+import { EventParticipantsBadge } from "./event-participants-badge";
 
 export function EventsList({
   events: initialEvents,
@@ -25,40 +31,30 @@ export function EventsList({
   const [events, setEvents] = useState(initialEvents);
 
   async function register(event: Event) {
-    const supabase = createClient();
-    const registered = event.registration_count ?? 0;
-    const full =
-      event.capacity != null && registered >= event.capacity;
+    const res = await fetch("/api/registrations/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eventId: event.id }),
+    });
+    const data = await res.json().catch(() => ({}));
 
-    const status = full ? "waitlist" : "registered";
-    const payment_status =
-      event.price_cents > 0 && isStripeEnabled() ? "pending" : "free";
-
-    if (event.price_cents > 0 && !isStripeEnabled()) {
-      toast.info("Betaling kommer snart — kontakt klubben for tilmelding.");
+    if (!res.ok) {
+      toast.error(data.error ?? "Kunne ikke tilmelde");
       return;
     }
 
-    const { error } = await supabase.from("event_registrations").upsert(
-      {
-        event_id: event.id,
-        user_id: currentUserId,
-        status,
-        payment_status,
-      },
-      { onConflict: "event_id,user_id" }
-    );
+    const status = data.status as string;
 
-    if (error) {
-      toast.error(error.message);
-      return;
+    if (status === "waitlist") {
+      toast.success("Du er på venteliste");
+    } else if (event.price_cents > 0 && usesManualMobilePay()) {
+      toast.success(
+        `Du er tilmeldt! Betal ${(event.price_cents / 100).toFixed(0)} kr til ${MOBILEPAY_NUMBER} med holdnavn i beskeden. Du får mail, når betalingen er godkendt.`,
+        { duration: 10000 }
+      );
+    } else {
+      toast.success("Du er tilmeldt!");
     }
-
-    toast.success(
-      status === "waitlist"
-        ? "Du er på venteliste"
-        : "Du er tilmeldt!"
-    );
     window.location.reload();
   }
 
@@ -101,9 +97,15 @@ export function EventsList({
         </Link>
       </div>
 
+      {usesManualMobilePay() && <MobilePayNotice />}
+
       {events.length === 0 ? (
         <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
-          Ingen kommende hold eller arrangementer lige nu.
+          Ingen kommende hold lige nu. Hold fra{" "}
+          <Link href="/kursushold" className="text-[#5B9BD5] hover:underline">
+            Kursushold
+          </Link>{" "}
+          vises her, når de er synkroniseret — kontakt admin hvis listen er tom.
         </p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
@@ -139,20 +141,37 @@ export function EventsList({
                   <p className="text-muted-foreground whitespace-pre-wrap">
                     {event.description}
                   </p>
+                  {event.price_cents > 0 && usesManualMobilePay() && (
+                    <MobilePayNotice compact holdTitle={event.title} />
+                  )}
                   <div className="flex flex-wrap items-center gap-2 text-sm">
                     {event.capacity != null && (
-                      <Badge variant="secondary" className="gap-1">
-                        <Users className="h-3 w-3" />
-                        {event.registration_count}/{event.capacity} tilmeldt
-                      </Badge>
+                      <EventParticipantsBadge
+                        registeredCount={event.registration_count ?? 0}
+                        capacity={event.capacity}
+                        participants={event.participants ?? []}
+                      />
                     )}
                     <Badge variant="outline">
-                      {event.price_cents === 0
-                        ? "Gratis"
-                        : `${(event.price_cents / 100).toFixed(0)} kr`}
-                      {event.price_cents > 0 && !isStripeEnabled() && " · betaling snart"}
+                      {mobilePayPaymentLabel(event.price_cents)}
                     </Badge>
-                    {isRegistered && <Badge className="bg-green-600">Tilmeldt</Badge>}
+                    {isRegistered && (
+                      <Badge
+                        className={
+                          reg?.payment_status === "paid" || event.price_cents === 0
+                            ? "bg-green-600"
+                            : reg?.payment_status === "pending"
+                              ? "bg-amber-600"
+                              : "bg-green-600"
+                        }
+                      >
+                        {reg?.payment_status === "pending"
+                          ? "Afventer betaling"
+                          : reg?.payment_status === "paid"
+                            ? "Plads godkendt"
+                            : "Tilmeldt"}
+                      </Badge>
+                    )}
                     {isWaitlist && <Badge variant="secondary">Venteliste</Badge>}
                   </div>
                   {isRegistered || isWaitlist ? (
